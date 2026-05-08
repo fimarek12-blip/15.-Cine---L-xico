@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Vocabulario Avanzado - Clase</title>
+    
+    <style>
+        :root { --p: #2c3e50; --a: #3498db; --bg: #f4f7f6; --ok: #27ae60; --bad: #e74c3c; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px 0;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        /* Título centrado */
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        /* Botones para cambiar entre filas */
+        .row-selector {
+            display: flex;
+            gap: 10px;
+            width: 90vw;
+            max-width: 450px;
+            margin-bottom: 15px;
+        }
+
+        .row-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--p);
+            border-radius: 10px;
+            background: white;
+            color: var(--p);
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .row-btn.active {
+            background: var(--p);
+            color: white;
+        }
+
+        .card-container { 
+            perspective: 1000px; 
+            width: 90vw; 
+            max-width: 450px; 
+            height: 300px; 
+            cursor: pointer;
+            touch-action: manipulation; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card { 
+            width: 100%; 
+            height: 100%; 
+            position: relative; 
+            transition: transform 0.4s; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            border-radius: 15px;
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+        }
+
+        .card.flipped { transform: rotateY(180deg); }
+
+        .face { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 25px; 
+            box-sizing: border-box; 
+            border-radius: 15px; 
+            text-align: center; 
+            font-size: 1.4rem;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .front { background: white; color: var(--p); font-weight: bold; border: 2px solid #ddd; }
+        .back { background: var(--a); color: white; transform: rotateY(180deg); font-size: 1.2rem; }
+
+        .controls { 
+            margin-top: 15px;
+            display: flex; 
+            gap: 10px; 
+            width: 90vw; 
+            max-width: 450px;
+        }
+
+        .action-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            width: 90vw;
+            max-width: 450px;
+        }
+
+        button { 
+            flex: 1; 
+            padding: 15px 10px; 
+            border: none; 
+            border-radius: 12px; 
+            background: var(--p); 
+            color: white; 
+            font-size: 1rem; 
+            font-weight: bold;
+            cursor: pointer;
+            touch-action: manipulation; 
+        }
+
+        .btn-know { background: var(--ok); }
+        .btn-dont-know { background: var(--bad); }
+
+        .info { margin-top: 12px; font-weight: bold; color: #7f8c8d; }
+
+        @media (max-height: 600px) {
+            .card-container { height: 220px; }
+            .face { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cine</h1>
+
+    <div class="row-selector">
+        <button class="row-btn active" id="btn-fila-no" onclick="setFila('no')">Por aprender (<span id="count-no">0</span>)</button>
+        <button class="row-btn" id="btn-fila-si" onclick="setFila('si')">Ya aprendidas (<span id="count-si">0</span>)</button>
+    </div>
+
+    <div class="card-container" onclick="flip()">
+        <div class="card" id="c">
+            <div class="face front" id="q">Cargando...</div>
+            <div class="face back" id="a">...</div>
+        </div>
+    </div>
+
+    <div class="info" id="status">0 / 0</div>
+
+    <div class="controls">
+        <button onclick="prev()">⬅ Ant.</button>
+        <button onclick="shuffle()">🔀 Mezclar</button>
+        <button onclick="next()">Sig. ➡</button>
+    </div>
+
+    <div class="action-controls" id="eval-controls">
+        <button class="btn-dont-know" onclick="clasificarPalabra(false)">❌ No la sé</button>
+        <button class="btn-know" onclick="clasificarPalabra(true)">✔ Ya la sé</button>
+    </div>
+
+<script>
+    // Tu lista original de palabras del archivo de Naturaleza
+    const todasLasPalabras = [
+        
+	{q: "cine, m. de estreno", a: "premiérové kino"},
+	{q: "cine, m. de reestreno", a: "reprízové kino"},
+	{q: "cine, m. de barrio", a: "kino čtvrti"},
+	{q: "cine, m. de vanguardia", a: "avantgardní kino"},
+	{q: "multicine, m.", a: "multikino"},
+	{q: "cine club, m.", a: "filmový klub"},
+	{q: "sala, f. de arte y ensayo", a: "kino uměleckého filmu"},
+	{q: "dar/poner/echar una película", a: "dávat film"},
+	{q: "llegar a las pantallas", a: "dorazit na filmové plátno, jít do kin"},
+	{q: "estrenarse", a: "mít premiéru"},
+	{q: "estreno, m.", a: "premiéra"},
+	{q: "seguir poniendo", a: "stále dávat (film)"},
+	{q: "reponer", a: "znovu uvést (film)"},
+	{q: "dejar de poner", a: "přestat dávat (film)"},
+	{q: "retirar de la cartelera", a: "stáhnout s programu"},
+	{q: "1ª/ 2ª/ 3ª sesión", a: "první, druhé, třetí promítání"},
+	{q: "prohibido/no apto/no recomendado para menores (de edad)", a: "nevhodné pro mladistvé"},
+	{q: "autorizado/apto/recomendado para mayores de 13 años", a: "vhodné pro mladistvé"},
+	{q: "película, f. x (equis)", a: "film pro dospělé (pornografie)"},
+	{q: "apto para todos los públicos", a: "vhodné pro veškeré možné publikum"},
+	{q: "llegar tarde", a: "prijít pozdě"},
+	{q: "justo para ver los títulos", a: "stihnout z filmu jenom titulky"},
+	{q: "llegar con la película empezada", a: "přijít k rozběhnutému filmu"},
+	{q: "perderse el principio/comienzo", a: "ztratit se na začátku"},
+	{q: "cine, m. mudo x sonoro", a: "němý x neslyšící film"},
+	{q: "película, f. en blanco y negro x en color", a: "černobílý x barevný film"},
+	{q: "película, f. corta/cortometraje, m./corto, m.,", a: "krátký film"},
+	{q: "película, f. larga/largometraje, m.", a: "celovečerní film"},
+	{q: "anuncios, pl.m. publicitarios/publicidad, f.", a: "reklamní sdělení"},
+	{q: "documental, m.", a: "dokumentární film"},
+	{q: "noticiario, m.", a: "filmový týdeník"},
+	{q: "NO-DO, m.", a: "filmový týdeník, spjatý s frankistickým obdobím"},
+	{q: "película, f., de ficción", a: "sci-fi film"},
+	{q: "película, f., argumental", a: "hraný film"},
+	{q: "película, f., de dibujos animados", a: "animovaný film"},
+	{q: "película, f., de marionetas", a: "loutkový film"},
+	{q: "película, f., policíaca", a: "kriminální film"},
+	{q: "película, f., bélica/de guerra", a: "válečný film"},
+	{q: "película, f., de espionaje", a: "špionážní film"},
+	{q: "película, f., de aventuras", a: "dobrodružný film"},
+	{q: "película, f., histórica", a: "historický film"},
+	{q: "película, f., psicológica", a: "psychologický film"},
+	{q: "película, f., de vaqueros", a: "kovbojský film"},
+	{q: "película, f., de amor", a: "romantický film"},
+	{q: "película, f., de suspense/de intriga", a: "napínavý film"},
+	{q: "película, f., de violencia", a: "násilný film"},
+	{q: "película, f., de terror", a: "horrorový film"},
+	{q: "película, f., de ciencia ficción", a: "sci-fi film"},
+	{q: "película, f., independiente", a: "nezávislý film"},
+	{q: "película, f., biográfica", a: "biografický film"},
+	{q: "precuela, f. x secuela, f.", a: "předchozí x následující díl"},
+	{q: "serie, f.", a: "série"},
+	{q: "miniserie, f.", a: "minisérie"},
+	{q: "comedia de situación", a: "situační komedie (sitcom)"},
+	{q: "temporada, f.", a: "sezóna"},
+	{q: "capítulo, m.", a: "kapitola"},
+	{q: "episodio f.", a: "epizoda"},
+	{q: "intro f.", a: "úvod"},
+	{q: "créditos iniciales, pl.m. x créditos, pl.m.", a: "úvodní titulky x titulky (na konci)"},
+	{q: "*(episodio) piloto, m.", a: "pilotní, zkušební (epizoda)"},
+	{q: "renovar x cancelar una serie", a: "obnovit x zrušit sérii"},
+	{q: "destripar el argumento", a: "prozradit zápletku"},
+	{q: "hacer espóiler, m.", a: "spoilerovat, prozrazovat zápletku"},
+	{q: "maratonear (una serie) / darse un atracón de series", a: "uspořádat filmový maraton, uspořádat seriálový maraton"},
+	{q: "hacer/rodar películas", a: "točit filmy"},
+	{q: "filmar, interiores, pl.m. x exteriores, pl.m.", a: "točit v interiéru x exteriéru"},
+	{q: "estudio, m.", a: "studio"},
+	{q: "plató, m.", a: "plató (část filmového ateliéru, která je viditelná v televizi"},
+	{q: "rollo, m. de película", a: "filmový kotouč"},
+	{q: "* ser un rollo", a: "být nudný, nuda"},
+	{q: "proyectar", a: "promítat"},
+	{q: "proyector, m.", a: "promítačka"},
+	{q: "proyección, f.", a: "promítání"},
+	{q: "cineasta, m. y f.", a: "filmař"},
+	{q: "director/-a, m. y f.", a: "režisér/ka"},
+	{q: "dirección, f.", a: "režírování"},
+	{q: "productor/-a, m. y f.", a: "producent/ka"},
+	{q: "producción, f.", a: "produkce"},
+	{q: "coproductor, m.", a: "koproducent"},
+	{q: "coproducción, f.", a: "koprodukce"},
+	{q: "superproducción, f.", a: "vysokonákladová produkce"},
+	{q: "equipo, m. técnico", a: "technický tým"},
+	{q: "guionista, m. y f.", a: "scénárista"},
+	{q: "guion, m.", a: "scénář"},
+	{q: "asistente, m. y f. de dirección", a: "asistent režiséra"},
+	{q: "operador/-a, m. y f./cámara, m. y f. x cámara, f", a: "kameraman/ka x kamera"},
+	{q: "arreglista, m. y f.", a: "úprava (scénáře)"},
+	{q: "arreglo, m.", a: "aranžmá"},
+	{q: "montaje, m.", a: "střih"},
+	{q: "(director/-a de, ingeniero/-a de) sonido, m.", a: "zvukař"},
+	{q: "director/-a, m. de fotografía", a: "hlavní kameraman/ka"},
+	{q: "director/-a, m. de decorados, pl.m.", a: "filmový architekt, filmová architektka"},
+	{q: "director/-a, m. de música, f.", a: "hudební režisér/ka"},
+	{q: "director/-a, m. de vestuario, m.", a: "kostýmní výtvarník, kostýmní výtvarnice"},
+	{q: "director/-a, m. de maquillaje, m.", a: "vedoucí maskér/ka"},
+	{q: "director/-a, m. de efectos, pl.m. especiales", a: "vedoucí speciálních efektů"},
+	{q: "especialista, m. y f.", a: "specialista"},
+	{q: "intérprete, m. y f.", a: "představitel"},
+	{q: "actor, m., actriz, f. consagrado/a", a: "uznávaný herec, uznávaná herečka"},
+	{q: "actor, m., actriz, f. novel", a: "nový herec, nová herečka"},
+	{q: "actor, m., actriz, f. revelación", a: "herec objev roku, herečka objev roku"},
+	{q: "actor, m., actriz, f. principal", a: "hlavní herec, hlavní herečka"},
+	{q: "actor, m., actriz, f. protagonista x secundario/a, de reparto", a: "herec hlavní role, herečka hlavní role x herec vedlejších rolí, herečka vedlejších rolí"},
+	{q: "estrella, f. de la pantalla", a: "hvězda plátna"},
+	{q: "extra, m.", a: "komparzista"},
+	{q: "doblaje, m.", a: "dabing"},
+	{q: "doblar una película", a: "dabovat film"},
+	{q: "doblador/-a, m. y f.", a: "dabér/ka"},
+	{q: "laboratorio, m.", a: "filmová laboratoř"},
+	{q: "versión, f. (original) subtitulada/con subtítulos en español", a: "originální verze s titulky ve španělštině"},
+	{q: "hacer un buen enfoque", a: "dobře zaostřit"},
+	{q: "enfocar", a: "zaostřit"},
+	{q: "primer plano, m.", a: "detail (záběr z blízka)"},
+	{q: "ambientación, f.", a: "prostředí"},
+	{q: "el argumento se desarrolla/gira en torno a ...", a: "děj se odehráva ..."},
+	{q: "la acción tiene lugar en...", a: "akce je situovaná v ..."},
+	{q: "se nos presenta mediante/a través de/por medio del protagonista", a: "je představováno prostřednictvím protagonisty"},
+	{q: "se nos presenta de manera retrospectiva", a: "je ñame představováno retrospektivně"},
+	{q: "adaptación, f., cinematográfica/al cine", a: "filmová adaptace"},
+	{q: "de una historia real", a: "ze skutečného příběhu"},
+	{q: "inspirarse en un hecho histórico", a: "inspirovat se skutečným příběhem"},
+	{q: "una película adaptada", a: "adaptovaný film"},
+	{q: "adaptar para el cine", a: "adaptovat pro kino"},
+	{q: "reflejar el enfrentamiento/conflicto entre el bien y el mal", a: "reflektovat souboj dobra se zlem"},
+	{q: "comedia, f., ligera", a: "lehká komedie, oddechová komedie"},
+	{q: "comedia, f., amarga,", a: "černá komedie"},
+	{q: "sátira, f., mordaz sobre la crème de la crème", a: "satira"},
+	{q: "mordaz sobre la crème de la crème", a: "smetánka českého filmu"},
+	{q: "historia, f., conmovedora", a: "dojemný příběh"},
+	{q: "historia, f., apasionante", a: "vášnivý příběh"},
+	{q: "investigación, f., impresionante", a: "působivý výzkum"},
+	{q: "investigación, f., atrevida", a: "odvážný výzkum"},
+	{q: "crítica, f., social que enfoca ...", a: "sociální kritika zaměřená na ..."},
+	{q: "los problemas de las capas bajas volver a tratar el tema de siempre x un tema de siempre, universal, eterno ofrecer un punto de vista/una visión/una óptica original", a: "problémy nižších společenských vrstev x univerzální téma, nabídnout originální pohled na věc"},
+	{q: "versión, f. innovadora", a: "inovativní verze"},
+	{q: "versión, f. sorprendente", a: "překvapivá verze"},
+	{q: "película, f. cargada de situaciones cómicas", a: "film nabitý komickými momenty"},
+	{q: "película, f. llena de situaciones cómicas", a: "film plný komických momentů"},
+	{q: "*desternillarse, partirse de risa", a: "smát se až se za břicho popadat"},
+	{q: "película, f. premiada", a: "oceněný film"},
+	{q: "recibir una gran alabanza de (parte de) la crítica", a: "Sklidit velkou pochvalu od kritiky"},
+	{q: "nominar para el premio a la mejor película,", a: "nominovat na ocenění za nejlepší film"},
+	{q: "nominar para el premio al mejor guion del año", a: "nominovat na ocenění za nejlepší scénář"},
+	{q: "película, f. nominada al Goya a/por la mejor banda sonora", a: "film nominovaný na filmovou cenu Goya za nejlepší soundtrack"},
+	{q: "película, f. nominada al Goya a/por la mejor interpretación femenina x masculina,", a: "film nominovaný na filmovou cenu Goya za nejlepší ženské/mužské herecké ztvárnění"},
+	{q: "otorgar el premio a Saura/Saura se llevó el premio/obtuvo el primer premio", a: "udělit cenu Saurovi"},
+	{q: "conceder el Premio de la Crítica", a: "udělit cenu kritiky"},
+	{q: "ser galardonado", a: "být oceněn"},
+	{q: "participar/tomar parte en un festival", a: "účastnit se festivalu"},
+	{q: "edición, f. de festival", a: "festivalové vydání, ročník festivalu"},
+	{q: "** ser una cosa de película", a: "být jako ve filmu"},
+	{q: "** tener rollo para rato", a: "ten, kdo hodně mluví o něčem"},
+      
+	    ];
+
+    // Listas dinámicas para clasificar las palabras
+    let palabrasNoConozco = [...todasLasPalabras];
+    let palabrasYaConozco = [];
+
+    let filaActiva = 'no'; // 'no' (por aprender) o 'si' (ya aprendidas)
+    let idx = 0;
+
+    const cardEl = document.getElementById('c');
+    const qEl = document.getElementById('q');
+    const aEl = document.getElementById('a');
+    const sEl = document.getElementById('status');
+
+    function getListaActiva() {
+        return filaActiva === 'no' ? palabrasNoConozco : palabrasYaConozco;
+    }
+
+    function update() {
+        const lista = getListaActiva();
+        cardEl.classList.remove('flipped');
+        
+        // Actualizar contadores dinámicamente en las pestañas superiores
+        document.getElementById('count-no').innerText = palabrasNoConozco.length;
+        document.getElementById('count-si').innerText = palabrasYaConozco.length;
+
+        if (lista.length === 0) {
+            qEl.innerText = "¡Lista vacía!";
+            aEl.innerText = filaActiva === 'no' ? "¡Enhorabuena, has repasado todo!" : "No has añadido ninguna palabra aquí aún.";
+            sEl.innerText = "0 / 0";
+            return;
+        }
+
+        // Validación de límites del índice por si se vacían elementos
+        if (idx >= lista.length) {
+            idx = Math.max(0, lista.length - 1);
+        }
+
+        setTimeout(() => {
+            qEl.innerText = lista[idx].q;
+            aEl.innerText = lista[idx].a;
+            sEl.innerText = `${idx + 1} / ${lista.length}`;
+        }, 100);
+    }
+
+    function flip() { 
+        const lista = getListaActiva();
+        if (lista.length > 0) cardEl.classList.toggle('flipped'); 
+    }
+    
+    function next() { 
+        const lista = getListaActiva();
+        if(idx < lista.length - 1) { idx++; update(); } 
+    }
+    
+    function prev() { 
+        if(idx > 0) { idx--; update(); } 
+    }
+
+    function shuffle() {
+        const lista = getListaActiva();
+        if (lista.length > 0) {
+            lista.sort(() => Math.random() - 0.5);
+            idx = 0;
+            update();
+        }
+    }
+
+    // Cambiar la pestaña de la fila actual
+    function setFila(tipo) {
+        filaActiva = tipo;
+        idx = 0;
+        
+        if (tipo === 'no') {
+            document.getElementById('btn-fila-no').classList.add('active');
+            document.getElementById('btn-fila-si').classList.remove('active');
+        } else {
+            document.getElementById('btn-fila-no').classList.remove('active');
+            document.getElementById('btn-fila-si').classList.add('active');
+        }
+        
+        update();
+    }
+
+    // Clasificar las tarjetas entre aprendidas y por aprender
+    function clasificarPalabra(loSabe) {
+        let listaOrigen = filaActiva === 'no' ? palabrasNoConozco : palabrasYaConozco;
+        let listaDestino = filaActiva === 'no' ? palabrasYaConozco : palabrasNoConozco;
+
+        if (listaOrigen.length === 0) return;
+
+        // Si la clasificación no implica moverla a otra lista, simplemente avanza
+        if ((filaActiva === 'no' && !loSabe) || (filaActiva === 'si' && loSabe)) {
+            next();
+            return;
+        }
+
+        // Mover el elemento a la lista destino
+        const palabraMovida = listaOrigen.splice(idx, 1)[0];
+        listaDestino.push(palabraMovida);
+
+        update();
+    }
+
+    // Atajos de teclado para ordenador
+    document.addEventListener('keydown', (e) => {
+        if(e.code === 'ArrowRight') next();
+        if(e.code === 'ArrowLeft') prev();
+        if(e.code === 'Space') flip();
+    });
+
+    update();
+</script>
+</body>
+</html>
